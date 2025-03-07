@@ -5,19 +5,19 @@ from .regressor import LogitRegression
 import pandas as pd
 import numpy as np
 from . import regressor
-from sklearn.model_selection import train_test_split 
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.linear_model import LogisticRegression 
+from sklearn.linear_model import LogisticRegression
 from django.contrib import messages
 from django.contrib.auth.models import User,auth
-from django.contrib.auth import authenticate,login 
+from django.contrib.auth import authenticate,login
 from django.contrib.auth.decorators import login_required
 from .models import HeartData,DoctorHospital
 from django.core.mail import send_mail
 # Create your views here.
 
 def quickpredict(request):  #Predicts the results after form is submitted.Works only if user is not authenticated
-    
+
     if request.method=='POST':
 
         form=Parameters(request.POST)
@@ -35,10 +35,10 @@ def quickpredict(request):  #Predicts the results after form is submitted.Works 
             slope=form.cleaned_data['slope']
             ca=form.cleaned_data['ca']
             thal=form.cleaned_data['thal']
-            
+
             #regressor = LogitRegression()
             X,Y=regressor.find()
-            #scaler = MinMaxScaler(feature_range=(0, 1)) 
+            #scaler = MinMaxScaler(feature_range=(0, 1))
             #X=scaler.fit_transform(X)
             X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 1/3, random_state = 0 ) # Split the dataset into 70-30
             #model = LogitRegression(learning_rate=0.01 , iterations=1000)
@@ -52,8 +52,8 @@ def quickpredict(request):  #Predicts the results after form is submitted.Works 
         else:
             print('The form was not valid.')
             return redirect('/')
-        
-        
+
+
     else:
         form=Parameters()
         return render(request,'quickpredict.html',{'form':form})
@@ -61,7 +61,7 @@ def quickpredict(request):  #Predicts the results after form is submitted.Works 
 def index(request): #Directs the user to home page . Different for authenticated and non authenticated users.
     if request.user.is_authenticated:
         if request.method=='POST':
-    
+
             form=Parameters(request.POST)
             if form.is_valid():
                 age=form.cleaned_data['age']
@@ -79,13 +79,19 @@ def index(request): #Directs the user to home page . Different for authenticated
                 thal=form.cleaned_data['thal']
 
 
-                X,Y=regressor.find() 
+                X,Y=regressor.find()
                 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 1/3, random_state = 0 )
                 #model = LogitRegression(learning_rate=0.01 , iterations=1000)
                 model = LogitRegression(learning_rate=0.0001 , iterations=1000)
                 model.fit(X_train, Y_train)
                 output , output1 = model.predict(np.array([age,sex,cp,trestbps,chol,fbs,restcg,thalach,exang,oldpeak,slope,ca,thal]).reshape(1,-1))
-                danger = 'high' if output == 1 else 'low'
+                danger = 'low' if output == 1 else 'high'
+                
+                if danger == 'low':
+                    output1 /= 10.0
+                else:
+                    output1 =( output1 - .90 ) * -1
+
                 output1=output1[0]
                 saved_data = HeartData(age=age ,  # Saving to database
                 sex = sex,
@@ -93,8 +99,8 @@ def index(request): #Directs the user to home page . Different for authenticated
                 trestbps = trestbps,
                 chol = chol,
                 fbs = fbs,
-                restcg = restcg , 
-                thalach = thalach , 
+                restcg = restcg ,
+                thalach = thalach ,
                 exang = exang,
                 oldpeak = oldpeak,
                 slope = slope,
@@ -148,7 +154,7 @@ def contact(request): #Diplays contact page . Sends email to HDPS using SMTP.
         email = request.POST.get('email')
         title = request.POST.get('title1')
         message = request.POST.get('message')
-        
+
         send_mail(title , message+'\n'+'From : '+name+'\n'+'Email : '+email ,from_email=email, recipient_list=['focusus1@gmail.com']) #Sends mail to HDPS
     return render(request , 'contact.html')
 
@@ -176,7 +182,7 @@ def signin(request): # For the user to sign in.
             messages.warning(request,'Invalid Credentials')
             return redirect('signin')
 
-        
+
     else:
         return render(request,'signin.html')
 
@@ -190,7 +196,7 @@ def signup(request): #For the user to resister or sign up.
         password = request.POST['password']
         email = request.POST['email']
 
-        
+
         if User.objects.filter(username=username).exists():
             messages.info(request,'Username taken')
             return redirect('signup')
@@ -199,13 +205,13 @@ def signup(request): #For the user to resister or sign up.
             return redirect('signup')
         else:
             user = User.objects.create_user(username=username, password=password,email=email,first_name = first_name,last_name=last_name)
-            
+
             user.save()
-            
+
             messages.success(request,f"User {username} created!")
             return redirect('signin')
         #return redirect('/')
-    else:   
+    else:
         return render(request,'signup.html')
 
 
