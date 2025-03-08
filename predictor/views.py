@@ -155,7 +155,7 @@ def contact(request): #Diplays contact page . Sends email to HDPS using SMTP.
         title = request.POST.get('title1')
         message = request.POST.get('message')
 
-        send_mail(title , message+'\n'+'From : '+name+'\n'+'Email : '+email ,from_email=email, recipient_list=['focusus1@gmail.com']) #Sends mail to HDPS
+        send_mail(title , message+'\n'+'From : '+name+'\n'+'Email : '+email ,from_email=email, recipient_list=['']) #Sends mail to HDPS
     return render(request , 'contact.html')
 
 
